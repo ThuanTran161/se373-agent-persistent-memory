@@ -11,6 +11,7 @@ class Agent:
         self.model_name = model_name or GEMINI_MODEL
         self.use_mock = use_mock or not bool(GEMINI_API_KEY)
         self.client = None
+        self.max_agent_turns = 5
 
         if not self.use_mock:
             try:
@@ -24,7 +25,7 @@ class Agent:
             value=value,
             category=category,
             description=description,
-            reason="User agreed convention in session"
+            reason="Agent identified convention from user dialogue"
         )
         return json.dumps(res, ensure_ascii=False)
 
@@ -32,7 +33,7 @@ class Agent:
         res = self.memory_manager.save_or_update(
             rule_key=rule_key,
             value=new_value,
-            reason=reason or "User updated convention"
+            reason=reason or "Agent detected updated project convention"
         )
         return json.dumps(res, ensure_ascii=False)
 
@@ -59,11 +60,11 @@ class Agent:
         if self.use_mock:
             return self._mock_process(user_message, session_context)
         try:
-            return self._live_process(user_message, session_context)
+            return self._live_agent_loop(user_message, session_context)
         except Exception as e:
             return self._mock_process(user_message, session_context, fallback_error=str(e))
 
-    def _live_process(self, user_message: str, session_context: str) -> dict:
+    def _live_agent_loop(self, user_message: str, session_context: str) -> dict:
         tools = [
             self.tool_save_convention,
             self.tool_update_convention,
@@ -72,60 +73,76 @@ class Agent:
         ]
 
         system_instruction = (
-            "You are an intelligent software engineering AI agent operating inside an Agent Harness.\n"
-            "You must strictly adhere to all persistent conventions injected into your context.\n"
-            "When users state or update architecture decisions or conventions, use your memory tools to store or update them.\n"
-            "When asked to analyze or aggregate large datasets/logs, use the run_code tool (Code Mode) to compute locally and avoid context bloat.\n\n"
+            "You are an autonomous software engineering AI agent operating inside an Agent Harness.\n"
+            "You have access to persistent memory tools and a Code Mode execution tool.\n"
+            "Analyze the conversation and autonomously decide when to invoke tools:\n"
+            "1. When conventions/architecture are defined, call save_convention.\n"
+            "2. When existing conventions change or are replaced, call update_convention.\n"
+            "3. When asked to analyze large logs or heavy datasets, use run_code to execute python locally and return aggregated metrics.\n"
+            "4. Strictly adhere to all injected active conventions:\n\n"
             + session_context
         )
 
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            tools=tools,
-            temperature=0.2,
-        )
-
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=user_message,
-            config=config,
-        )
+        messages = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_message)]
+            )
+        ]
 
         tool_calls_executed = []
-        function_calls = response.function_calls
+        final_text = ""
 
-        if function_calls:
+        for step in range(self.max_agent_turns):
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                tools=tools,
+                temperature=0.2,
+            )
+
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=messages,
+                config=config,
+            )
+
+            candidate = response.candidates[0] if response.candidates else None
+            if not candidate or not candidate.content:
+                final_text = response.text or "Không nhận được phản hồi từ model."
+                break
+
+            messages.append(candidate.content)
+
+            function_calls = response.function_calls
+            if not function_calls:
+                final_text = response.text or "Hoàn tất."
+                break
+
+            tool_response_parts = []
             for call in function_calls:
                 call_args = dict(call.args) if call.args else {}
                 result_str = self._execute_tool_call(call.name, call_args)
                 tool_calls_executed.append({
                     "name": call.name,
                     "args": call_args,
-                    "result": result_str
+                    "result": result_str,
+                    "turn": step + 1
                 })
-
-            followup_prompt = (
-                f"User original request: {user_message}\n\n"
-                f"Executed tool results: {json.dumps(tool_calls_executed, ensure_ascii=False)}\n\n"
-                "Please respond to the user based on these tool results and existing conventions."
-            )
-
-            second_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=followup_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.2
+                tool_response_parts.append(
+                    types.Part.from_function_response(
+                        name=call.name,
+                        response={"result": result_str}
+                    )
                 )
+
+            messages.append(
+                types.Content(role="tool", parts=tool_response_parts)
             )
-            final_text = second_response.text or "Đã ghi nhận và xử lý yêu cầu."
-        else:
-            final_text = response.text or "Đã ghi nhận yêu cầu."
 
         return {
             "response": final_text,
             "tool_calls": tool_calls_executed,
-            "mode": "live_gemini"
+            "mode": "live_gemini_agent_loop"
         }
 
     def _mock_process(self, user_message: str, session_context: str, fallback_error=None) -> dict:
