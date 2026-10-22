@@ -99,12 +99,25 @@ Hệ thống sử dụng mô hình Google Gemini để vận hành Agent Loop:
    ```
 2. Điền API Key lấy miễn phí tại [Google AI Studio](https://aistudio.google.com/app/apikey):
    ```env
-   GEMINI_API_KEY=AIzaSy...
-   GEMINI_MODEL=gemini-2.5-flash
+   GEMINI_API_KEY=your_key_here
+   GEMINI_MODEL=gemini-3.5-flash
    ```
 
-### 3.3. Chạy kịch bản Demo hoàn chỉnh (Challenge A + Code Mode)
+### 3.3. Lựa chọn cách chạy thử nghiệm
 
+#### Cách 1: Chat tương tác trực tiếp với Agent (Khuyên dùng để trải nghiệm)
+Cho phép người dùng gõ câu hỏi bất kỳ, tự thỏa thuận quy ước, chuyển session và kiểm chứng:
+```bash
+python chat_interactive.py
+```
+*Các lệnh hỗ trợ trong khi chat:*
+- `/new` : Khởi tạo session mới (Cold-start) để kiểm chứng Agent tự nạp quy ước cũ.
+- `/memory` : Xem các quy ước đang được lưu trữ trong Persistent Memory.
+- `/clear` : Xóa trắng bộ nhớ để bắt đầu lại kịch bản mới.
+- `/exit` : Thoát chương trình.
+
+#### Cách 2: Kịch bản kiểm chứng tự động (Dành cho việc chấm bài nhanh)
+Tự động chạy toàn bộ 4 Session kiểm chứng Chứng minh 1, Chứng minh 2 và Code Mode:
 ```bash
 # Chạy với Google Gemini trực tiếp (Live Agent Loop)
 python run_demo.py
