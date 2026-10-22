@@ -3,6 +3,14 @@ from datetime import datetime
 from pathlib import Path
 from src.config import MEMORY_DIR, CONVENTIONS_FILE, MARKDOWN_CONVENTIONS_FILE, MEMORY_HISTORY_FILE
 
+KEY_ALIASES = {
+    "primary_db": "database",
+    "db": "database",
+    "backend_framework": "framework",
+    "naming_style": "naming_convention",
+    "coding_style": "naming_convention",
+}
+
 class MemoryManager:
     def __init__(self, storage_dir=None):
         if storage_dir:
@@ -74,9 +82,16 @@ class MemoryManager:
             f.write("\n".join(lines))
 
     def save_or_update(self, rule_key, value, category=None, description=None, reason="initial"):
+        canonical_key = KEY_ALIASES.get(rule_key, rule_key)
         conventions = self.load_conventions()
         history = self._load_history()
         now_str = datetime.now().isoformat()
+
+        for alias_k, canon_k in KEY_ALIASES.items():
+            if canon_k == canonical_key and alias_k in conventions and alias_k != canonical_key:
+                del conventions[alias_k]
+
+        rule_key = canonical_key
 
         if rule_key in conventions:
             old_item = conventions[rule_key]

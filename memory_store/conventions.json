@@ -3,26 +3,26 @@
     "rule_key": "framework",
     "value": "FastAPI",
     "category": "tech_stack",
-    "description": "Framework chính được sử dụng trong dự án",
+    "description": "Framework chính (FastAPI)",
     "version": 1,
-    "created_at": "2026-10-22T22:58:32.578353",
-    "updated_at": "2026-10-22T22:58:32.578353"
+    "created_at": "2026-10-22T23:16:37.785480",
+    "updated_at": "2026-10-22T23:16:37.785480"
   },
   "database": {
     "rule_key": "database",
     "value": "MongoDB",
     "category": "tech_stack",
-    "description": "Cơ sở dữ liệu chính được sử dụng trong dự án",
+    "description": "Cơ sở dữ liệu chính của hệ thống (MongoDB)",
     "version": 2,
-    "updated_at": "2026-10-22T22:58:46.804952"
+    "updated_at": "2026-10-22T23:16:41.895541"
   },
   "naming_convention": {
     "rule_key": "naming_convention",
     "value": "snake_case",
     "category": "coding_style",
-    "description": "Quy ước đặt tên mã nguồn và cơ sở dữ liệu",
+    "description": "Quy ước đặt tên (snake_case)",
     "version": 1,
-    "created_at": "2026-10-22T22:58:32.610391",
-    "updated_at": "2026-10-22T22:58:32.610391"
+    "created_at": "2026-10-22T23:16:37.853221",
+    "updated_at": "2026-10-22T23:16:37.853221"
   }
 }

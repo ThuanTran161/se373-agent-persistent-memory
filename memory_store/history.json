@@ -1,35 +1,35 @@
 [
   {
-    "timestamp": "2026-10-22T22:58:32.578353",
+    "timestamp": "2026-10-22T23:16:37.785480",
     "action": "CREATE",
     "rule_key": "framework",
     "value": "FastAPI",
     "version": 1,
-    "reason": "Agent autonomously identified convention from user instruction"
+    "reason": "initial"
   },
   {
-    "timestamp": "2026-10-22T22:58:32.594981",
+    "timestamp": "2026-10-22T23:16:37.820869",
     "action": "CREATE",
     "rule_key": "database",
     "value": "PostgreSQL",
     "version": 1,
-    "reason": "Agent autonomously identified convention from user instruction"
+    "reason": "initial"
   },
   {
-    "timestamp": "2026-10-22T22:58:32.610391",
+    "timestamp": "2026-10-22T23:16:37.853221",
     "action": "CREATE",
     "rule_key": "naming_convention",
     "value": "snake_case",
     "version": 1,
-    "reason": "Agent autonomously identified convention from user instruction"
+    "reason": "initial"
   },
   {
-    "timestamp": "2026-10-22T22:58:46.804952",
+    "timestamp": "2026-10-22T23:16:41.895541",
     "action": "UPDATE_OVERWRITE",
     "rule_key": "database",
     "old_value": "PostgreSQL",
     "new_value": "MongoDB",
     "version": 2,
-    "reason": "Chuyển cơ sở dữ liệu từ PostgreSQL sang MongoDB theo yêu cầu thay đổi kiến trúc."
+    "reason": "Thay đổi cơ sở dữ liệu sang MongoDB theo yêu cầu mới"
   }
 ]
