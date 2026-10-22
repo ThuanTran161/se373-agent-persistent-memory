@@ -11,7 +11,7 @@ class Agent:
         self.model_name = model_name or GEMINI_MODEL
         self.use_mock = use_mock or not bool(GEMINI_API_KEY)
         self.client = None
-        self.max_agent_turns = 5
+        self.last_executed_tool_calls = []
 
         if not self.use_mock:
             try:
@@ -19,130 +19,96 @@ class Agent:
             except Exception:
                 self.use_mock = True
 
-    def tool_save_convention(self, rule_key: str, value: str, category: str = "general", description: str = "") -> str:
-        res = self.memory_manager.save_or_update(
-            rule_key=rule_key,
-            value=value,
-            category=category,
-            description=description,
-            reason="Agent identified convention from user dialogue"
-        )
-        return json.dumps(res, ensure_ascii=False)
-
-    def tool_update_convention(self, rule_key: str, new_value: str, reason: str = "") -> str:
-        res = self.memory_manager.save_or_update(
-            rule_key=rule_key,
-            value=new_value,
-            reason=reason or "Agent detected updated project convention"
-        )
-        return json.dumps(res, ensure_ascii=False)
-
-    def tool_get_active_conventions(self) -> str:
-        convs = self.memory_manager.load_conventions()
-        return json.dumps(convs, ensure_ascii=False, indent=2)
-
-    def tool_run_code(self, code: str) -> str:
-        res = self.code_executor.execute(code)
-        return json.dumps(res, ensure_ascii=False)
-
-    def _execute_tool_call(self, tool_name: str, args: dict) -> str:
-        if tool_name == "save_convention":
-            return self.tool_save_convention(**args)
-        elif tool_name == "update_convention":
-            return self.tool_update_convention(**args)
-        elif tool_name == "get_active_conventions":
-            return self.tool_get_active_conventions()
-        elif tool_name == "run_code":
-            return self.tool_run_code(**args)
-        return json.dumps({"error": f"Unknown tool: {tool_name}"})
-
     def process_message(self, user_message: str, session_context: str = "") -> dict:
         if self.use_mock:
             return self._mock_process(user_message, session_context)
         try:
-            return self._live_agent_loop(user_message, session_context)
+            return self._live_gemini_agent(user_message, session_context)
         except Exception as e:
             return self._mock_process(user_message, session_context, fallback_error=str(e))
 
-    def _live_agent_loop(self, user_message: str, session_context: str) -> dict:
-        tools = [
-            self.tool_save_convention,
-            self.tool_update_convention,
-            self.tool_get_active_conventions,
-            self.tool_run_code,
-        ]
+    def _live_gemini_agent(self, user_message: str, session_context: str) -> dict:
+        self.last_executed_tool_calls = []
+
+        def save_convention(rule_key: str, value: str, category: str = "general", description: str = "") -> str:
+            """Lưu quy ước kỹ thuật mới vào Persistent Memory."""
+            res = self.memory_manager.save_or_update(
+                rule_key=rule_key,
+                value=value,
+                category=category,
+                description=description,
+                reason="Agent autonomously identified convention from user instruction"
+            )
+            self.last_executed_tool_calls.append({
+                "name": "save_convention",
+                "args": {"rule_key": rule_key, "value": value, "category": category, "description": description},
+                "result": json.dumps(res, ensure_ascii=False)
+            })
+            return json.dumps(res, ensure_ascii=False)
+
+        def update_convention(rule_key: str, new_value: str, reason: str = "") -> str:
+            """Cập nhật hoặc ghi đè một quy ước đã tồn tại khi có thay đổi kiến trúc/yêu cầu."""
+            res = self.memory_manager.save_or_update(
+                rule_key=rule_key,
+                value=new_value,
+                reason=reason or "Agent detected architecture convention change"
+            )
+            self.last_executed_tool_calls.append({
+                "name": "update_convention",
+                "args": {"rule_key": rule_key, "new_value": new_value, "reason": reason},
+                "result": json.dumps(res, ensure_ascii=False)
+            })
+            return json.dumps(res, ensure_ascii=False)
+
+        def get_active_conventions() -> str:
+            """Lấy toàn bộ các quy ước đang có hiệu lực trong Persistent Memory."""
+            convs = self.memory_manager.load_conventions()
+            self.last_executed_tool_calls.append({
+                "name": "get_active_conventions",
+                "args": {},
+                "result": f"{len(convs)} active conventions"
+            })
+            return json.dumps(convs, ensure_ascii=False, indent=2)
+
+        def run_code(code: str) -> str:
+            """Thực thi mã Python cục bộ trong môi trường Code Mode để xử lý, tổng hợp dữ liệu hoặc lọc log lớn mà không làm phình context."""
+            res = self.code_executor.execute(code)
+            self.last_executed_tool_calls.append({
+                "name": "run_code",
+                "args": {"code": code},
+                "result": res.get("stdout") or res.get("stderr")
+            })
+            return json.dumps(res, ensure_ascii=False)
+
+        tools = [save_convention, update_convention, get_active_conventions, run_code]
 
         system_instruction = (
             "You are an autonomous software engineering AI agent operating inside an Agent Harness.\n"
-            "You have access to persistent memory tools and a Code Mode execution tool.\n"
-            "Analyze the conversation and autonomously decide when to invoke tools:\n"
-            "1. When conventions/architecture are defined, call save_convention.\n"
-            "2. When existing conventions change or are replaced, call update_convention.\n"
-            "3. When asked to analyze large logs or heavy datasets, use run_code to execute python locally and return aggregated metrics.\n"
-            "4. Strictly adhere to all injected active conventions:\n\n"
+            "You have access to persistent memory tools and a local Code Mode execution tool.\n"
+            "Strictly follow these behavioral rules:\n"
+            "1. When conventions or architecture decisions are defined by the user, invoke save_convention for each key.\n"
+            "2. When any existing convention is changed or replaced (e.g. switching database, framework), invoke update_convention to overwrite and resolve conflicts.\n"
+            "3. When requested to analyze, aggregate large datasets/logs, invoke run_code to execute python locally and avoid token bloat (Code Mode).\n"
+            "4. When asked to write code, strictly apply the injected active project conventions:\n\n"
             + session_context
         )
 
-        messages = [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=user_message)]
-            )
-        ]
-
-        tool_calls_executed = []
-        final_text = ""
-
-        for step in range(self.max_agent_turns):
-            config = types.GenerateContentConfig(
+        chat = self.client.chats.create(
+            model=self.model_name,
+            config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 tools=tools,
-                temperature=0.2,
+                temperature=0.1
             )
+        )
 
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=messages,
-                config=config,
-            )
-
-            candidate = response.candidates[0] if response.candidates else None
-            if not candidate or not candidate.content:
-                final_text = response.text or "Không nhận được phản hồi từ model."
-                break
-
-            messages.append(candidate.content)
-
-            function_calls = response.function_calls
-            if not function_calls:
-                final_text = response.text or "Hoàn tất."
-                break
-
-            tool_response_parts = []
-            for call in function_calls:
-                call_args = dict(call.args) if call.args else {}
-                result_str = self._execute_tool_call(call.name, call_args)
-                tool_calls_executed.append({
-                    "name": call.name,
-                    "args": call_args,
-                    "result": result_str,
-                    "turn": step + 1
-                })
-                tool_response_parts.append(
-                    types.Part.from_function_response(
-                        name=call.name,
-                        response={"result": result_str}
-                    )
-                )
-
-            messages.append(
-                types.Content(role="tool", parts=tool_response_parts)
-            )
+        response = chat.send_message(user_message)
+        final_text = response.text or "Đã ghi nhận và xử lý yêu cầu."
 
         return {
             "response": final_text,
-            "tool_calls": tool_calls_executed,
-            "mode": "live_gemini_agent_loop"
+            "tool_calls": self.last_executed_tool_calls,
+            "mode": f"live_gemini ({self.model_name})"
         }
 
     def _mock_process(self, user_message: str, session_context: str, fallback_error=None) -> dict:
@@ -150,7 +116,11 @@ class Agent:
         msg_lower = user_message.lower()
 
         if ("đổi" in msg_lower or "chuyển sang" in msg_lower or "thay thế" in msg_lower) and "mongodb" in msg_lower:
-            self.tool_update_convention("primary_db", "MongoDB", "Chuyển đổi database từ PostgreSQL sang MongoDB theo yêu cầu mới")
+            self.memory_manager.save_or_update(
+                rule_key="primary_db",
+                value="MongoDB",
+                reason="Chuyển đổi database từ PostgreSQL sang MongoDB theo yêu cầu mới"
+            )
             tool_calls_executed = [
                 {"name": "update_convention", "args": {"rule_key": "primary_db", "new_value": "MongoDB", "reason": "Chuyển sang NoSQL"}}
             ]
@@ -180,9 +150,9 @@ class Agent:
             )
 
         elif "thống nhất" in msg_lower or "quy ước" in msg_lower or ("dùng" in msg_lower and "postgresql" in msg_lower):
-            self.tool_save_convention("backend_framework", "FastAPI", "framework", "Framework phát triển API")
-            self.tool_save_convention("primary_db", "PostgreSQL", "database", "Cơ sở dữ liệu chính của hệ thống")
-            self.tool_save_convention("naming_style", "snake_case", "code_style", "Quy ước đặt tên biến và hàm")
+            self.memory_manager.save_or_update("backend_framework", "FastAPI", "framework", "Framework phát triển API")
+            self.memory_manager.save_or_update("primary_db", "PostgreSQL", "database", "Cơ sở dữ liệu chính của hệ thống")
+            self.memory_manager.save_or_update("naming_style", "snake_case", "code_style", "Quy ước đặt tên biến và hàm")
             tool_calls_executed = [
                 {"name": "save_convention", "args": {"rule_key": "backend_framework", "value": "FastAPI"}},
                 {"name": "save_convention", "args": {"rule_key": "primary_db", "value": "PostgreSQL"}},

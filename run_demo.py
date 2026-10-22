@@ -1,4 +1,5 @@
 import sys
+import time
 import argparse
 from colorama import Fore, Style, init
 from src.harness import AgentHarness
@@ -31,11 +32,15 @@ def run_challenge_a_demo(use_mock=False):
     prompt1 = "Trong dự án này, chúng ta thống nhất dùng framework FastAPI, cơ sở dữ liệu PostgreSQL và quy ước đặt tên snake_case."
     harness.run_turn(prompt1, ctx1)
 
+    time.sleep(2)
+
     ctx2 = harness.start_new_session("Kiểm chứng nhớ quy ước ở Session mới (Cold Start)")
     prompt2 = "Hãy viết cho tôi hàm API lấy danh sách user."
     harness.run_turn(prompt2, ctx2)
 
     print(f"\n{Fore.GREEN}{Style.BRIGHT}[KẾT QUẢ CHỨNG MINH 1]: Ở Session 2 hoàn toàn mới (không truyền lịch sử chat cũ), Agent vẫn nạp đúng các quy ước đã lưu từ Session 1 và sinh code FastAPI + PostgreSQL + snake_case!{Style.RESET_ALL}\n")
+
+    time.sleep(2)
 
     print(f"\n{Fore.YELLOW}{Style.BRIGHT}>>> PHẦN 2: CHỨNG MINH 2 - RESOLVE CONFLICT & MEMORY UPDATE <<<{Style.RESET_ALL}")
 
@@ -43,11 +48,15 @@ def run_challenge_a_demo(use_mock=False):
     prompt3 = "Kiến trúc thay đổi, từ nay chúng ta đổi sang dùng cơ sở dữ liệu MongoDB thay cho PostgreSQL nhé."
     harness.run_turn(prompt3, ctx3)
 
+    time.sleep(2)
+
     ctx4 = harness.start_new_session("Kiểm chứng áp dụng quy ước mới sau khi cập nhật (Cold Start)")
     prompt4 = "Hãy viết lại hàm API lấy danh sách user theo kiến trúc hiện tại."
     harness.run_turn(prompt4, ctx4)
 
     print(f"\n{Fore.GREEN}{Style.BRIGHT}[KẾT QUẢ CHỨNG MINH 2]: Quy ước cũ (PostgreSQL) đã được ghi đè, giải quyết xung đột thành công. Ở Session 4, Agent chỉ sử dụng quy ước mới nhất là MongoDB!{Style.RESET_ALL}\n")
+
+    time.sleep(2)
 
     print(f"\n{Fore.YELLOW}{Style.BRIGHT}>>> PHẦN 3: ĐIỂM CỘNG - DEMO CODE MODE (GIẢM THIỂU CONTEXT BLOAT) <<<{Style.RESET_ALL}")
     ctx5 = harness.start_new_session("Thực thi Code Mode lọc log và dữ liệu")

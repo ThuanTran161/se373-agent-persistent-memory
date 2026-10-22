@@ -1,35 +1,35 @@
 [
   {
-    "timestamp": "2026-10-22T22:53:14.309011",
+    "timestamp": "2026-10-22T22:58:32.578353",
     "action": "CREATE",
-    "rule_key": "backend_framework",
+    "rule_key": "framework",
     "value": "FastAPI",
     "version": 1,
-    "reason": "Agent identified convention from user dialogue"
+    "reason": "Agent autonomously identified convention from user instruction"
   },
   {
-    "timestamp": "2026-10-22T22:53:14.346766",
+    "timestamp": "2026-10-22T22:58:32.594981",
     "action": "CREATE",
-    "rule_key": "primary_db",
+    "rule_key": "database",
     "value": "PostgreSQL",
     "version": 1,
-    "reason": "Agent identified convention from user dialogue"
+    "reason": "Agent autonomously identified convention from user instruction"
   },
   {
-    "timestamp": "2026-10-22T22:53:14.382883",
+    "timestamp": "2026-10-22T22:58:32.610391",
     "action": "CREATE",
-    "rule_key": "naming_style",
+    "rule_key": "naming_convention",
     "value": "snake_case",
     "version": 1,
-    "reason": "Agent identified convention from user dialogue"
+    "reason": "Agent autonomously identified convention from user instruction"
   },
   {
-    "timestamp": "2026-10-22T22:53:14.433434",
+    "timestamp": "2026-10-22T22:58:46.804952",
     "action": "UPDATE_OVERWRITE",
-    "rule_key": "primary_db",
+    "rule_key": "database",
     "old_value": "PostgreSQL",
     "new_value": "MongoDB",
     "version": 2,
-    "reason": "Chuyển đổi database từ PostgreSQL sang MongoDB theo yêu cầu mới"
+    "reason": "Chuyển cơ sở dữ liệu từ PostgreSQL sang MongoDB theo yêu cầu thay đổi kiến trúc."
   }
 ]

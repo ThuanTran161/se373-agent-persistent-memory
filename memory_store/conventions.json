@@ -1,28 +1,28 @@
 {
-  "backend_framework": {
-    "rule_key": "backend_framework",
+  "framework": {
+    "rule_key": "framework",
     "value": "FastAPI",
-    "category": "framework",
-    "description": "Framework phát triển API",
+    "category": "tech_stack",
+    "description": "Framework chính được sử dụng trong dự án",
     "version": 1,
-    "created_at": "2026-10-22T22:53:14.309011",
-    "updated_at": "2026-10-22T22:53:14.309011"
+    "created_at": "2026-10-22T22:58:32.578353",
+    "updated_at": "2026-10-22T22:58:32.578353"
   },
-  "primary_db": {
-    "rule_key": "primary_db",
+  "database": {
+    "rule_key": "database",
     "value": "MongoDB",
-    "category": "database",
-    "description": "Cơ sở dữ liệu chính của hệ thống",
+    "category": "tech_stack",
+    "description": "Cơ sở dữ liệu chính được sử dụng trong dự án",
     "version": 2,
-    "updated_at": "2026-10-22T22:53:14.433434"
+    "updated_at": "2026-10-22T22:58:46.804952"
   },
-  "naming_style": {
-    "rule_key": "naming_style",
+  "naming_convention": {
+    "rule_key": "naming_convention",
     "value": "snake_case",
-    "category": "code_style",
-    "description": "Quy ước đặt tên biến và hàm",
+    "category": "coding_style",
+    "description": "Quy ước đặt tên mã nguồn và cơ sở dữ liệu",
     "version": 1,
-    "created_at": "2026-10-22T22:53:14.382883",
-    "updated_at": "2026-10-22T22:53:14.382883"
+    "created_at": "2026-10-22T22:58:32.610391",
+    "updated_at": "2026-10-22T22:58:32.610391"
   }
 }
