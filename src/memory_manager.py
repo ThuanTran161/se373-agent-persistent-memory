@@ -1,37 +1,50 @@
 import json
 from datetime import datetime
-from src.config import CONVENTIONS_FILE, MARKDOWN_CONVENTIONS_FILE, MEMORY_HISTORY_FILE
+from pathlib import Path
+from src.config import MEMORY_DIR, CONVENTIONS_FILE, MARKDOWN_CONVENTIONS_FILE, MEMORY_HISTORY_FILE
 
 class MemoryManager:
-    def __init__(self):
+    def __init__(self, storage_dir=None):
+        if storage_dir:
+            self.storage_dir = Path(storage_dir)
+            self.storage_dir.mkdir(parents=True, exist_ok=True)
+            self.conventions_file = self.storage_dir / "conventions.json"
+            self.markdown_file = self.storage_dir / "AGENTS.md"
+            self.history_file = self.storage_dir / "history.json"
+        else:
+            self.storage_dir = MEMORY_DIR
+            self.conventions_file = CONVENTIONS_FILE
+            self.markdown_file = MARKDOWN_CONVENTIONS_FILE
+            self.history_file = MEMORY_HISTORY_FILE
+
         self._ensure_files()
 
     def _ensure_files(self):
-        if not CONVENTIONS_FILE.exists():
-            with open(CONVENTIONS_FILE, "w", encoding="utf-8") as f:
+        if not self.conventions_file.exists():
+            with open(self.conventions_file, "w", encoding="utf-8") as f:
                 json.dump({}, f, indent=2, ensure_ascii=False)
-        if not MEMORY_HISTORY_FILE.exists():
-            with open(MEMORY_HISTORY_FILE, "w", encoding="utf-8") as f:
+        if not self.history_file.exists():
+            with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump([], f, indent=2, ensure_ascii=False)
-        if not MARKDOWN_CONVENTIONS_FILE.exists():
+        if not self.markdown_file.exists():
             self._write_markdown({})
 
     def load_conventions(self):
         try:
-            with open(CONVENTIONS_FILE, "r", encoding="utf-8") as f:
+            with open(self.conventions_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
 
     def _load_history(self):
         try:
-            with open(MEMORY_HISTORY_FILE, "r", encoding="utf-8") as f:
+            with open(self.history_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return []
 
     def _save_history(self, history):
-        with open(MEMORY_HISTORY_FILE, "w", encoding="utf-8") as f:
+        with open(self.history_file, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2, ensure_ascii=False)
 
     def _write_markdown(self, conventions):
@@ -57,7 +70,7 @@ class MemoryManager:
                         lines.append(f"  - *Mô tả:* {it['description']}")
                 lines.append("")
 
-        with open(MARKDOWN_CONVENTIONS_FILE, "w", encoding="utf-8") as f:
+        with open(self.markdown_file, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
     def save_or_update(self, rule_key, value, category=None, description=None, reason="initial"):
@@ -112,7 +125,7 @@ class MemoryManager:
             })
             action_type = "created"
 
-        with open(CONVENTIONS_FILE, "w", encoding="utf-8") as f:
+        with open(self.conventions_file, "w", encoding="utf-8") as f:
             json.dump(conventions, f, indent=2, ensure_ascii=False)
 
         self._save_history(history)
@@ -140,8 +153,8 @@ class MemoryManager:
         )
 
     def clear(self):
-        with open(CONVENTIONS_FILE, "w", encoding="utf-8") as f:
+        with open(self.conventions_file, "w", encoding="utf-8") as f:
             json.dump({}, f, indent=2)
-        with open(MEMORY_HISTORY_FILE, "w", encoding="utf-8") as f:
+        with open(self.history_file, "w", encoding="utf-8") as f:
             json.dump([], f, indent=2)
         self._write_markdown({})

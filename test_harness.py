@@ -1,21 +1,23 @@
 import unittest
+import tempfile
+import shutil
 from src.memory_manager import MemoryManager
 from src.code_mode_executor import CodeModeExecutor
 from src.agent import Agent
 
 class TestPersistentMemoryHarness(unittest.TestCase):
     def setUp(self):
-        self.memory = MemoryManager()
-        self.memory.clear()
+        self.test_dir = tempfile.mkdtemp()
+        self.memory = MemoryManager(storage_dir=self.test_dir)
 
     def tearDown(self):
-        self.memory.clear()
+        shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_persistence_across_sessions(self):
         self.memory.save_or_update("backend_framework", "FastAPI", "framework")
         self.memory.save_or_update("primary_db", "PostgreSQL", "database")
 
-        new_memory_manager = MemoryManager()
+        new_memory_manager = MemoryManager(storage_dir=self.test_dir)
         convs = new_memory_manager.load_conventions()
 
         self.assertIn("backend_framework", convs)
