@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# Environment Variables & Secrets
+.env
+*.env
+!.env.example
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project internal & system caches
+.agents/
+.gemini/
+extracted_slide_text.txt
+
+# Course slides & materials (do not commit to GitHub)
+slide*.pdf
+*.pdf
+codemode.html
